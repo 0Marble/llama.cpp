@@ -1161,6 +1161,8 @@ void ggml_cann_op_unary_gated(std::function<void(ggml_backend_cann_context &, ac
                               ggml_backend_cann_context &                                                ctx,
                               ggml_tensor *                                                              dst);
 
+void ggml_cann_ssm_conv(ggml_backend_cann_context & ctx, ggml_tensor * dst);
+
 /**
  * @brief Helper macro to call a unary ACL operator via ggml_cann_op_unary.
  *

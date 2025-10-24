@@ -52,6 +52,17 @@ if (CANN_INSTALL_DIR)
         message(FATAL_ERROR "CANN: CANN toolkit supports x86-64 and arm64 but not ${CMAKE_SYSTEM_PROCESSOR}")
     endif()
 
+    set(ASCEND_CANN_PACKAGE_PATH ${CANN_INSTALL_DIR})
+    if (EXISTS ${CANN_INSTALL_DIR}/compiler/tikcpp/ascendc_kernel_cmake/ascendc.cmake)
+        include(${CANN_INSTALL_DIR}/compiler/tikcpp/ascendc_kernel_cmake/ascendc.cmake)
+    else()
+        message(FATAL_ERROR "CANN: Could not find ascendc.cmake in ${CANN_INSTALL_DIR}")
+    endif()
+
+    file(GLOB GGML_SOURCES_CANN_KERNELS "kernels/*.cpp")
+    message(STATUS "CANN: kernels:" ${GGML_SOURCES_CANN_KERNELS})
+    ascendc_library(kernels STATIC ${GGML_SOURCES_CANN_KERNELS})
+
     # Set header and libs
     set(CANN_INCLUDE_DIRS
         ${CANN_INSTALL_DIR}/include
@@ -64,6 +75,7 @@ if (CANN_INSTALL_DIR)
         nnopbase
         opapi
         acl_op_compiler
+        kernels
     )
 
     file(GLOB GGML_SOURCES_CANN "*.cpp")

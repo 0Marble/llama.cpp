@@ -1599,7 +1599,7 @@ ggml_backend_buffer_type_t ggml_backend_cann_host_buffer_type() {
                            /* .is_host          = */ ggml_backend_cpu_buffer_type()->iface.is_host,
                            },
         /* .device   = */
-         ggml_backend_reg_dev_get(ggml_backend_cann_reg(), 0),
+        ggml_backend_reg_dev_get(ggml_backend_cann_reg(), 0),
         /* .context  = */ nullptr,
     };
 
@@ -1838,6 +1838,9 @@ static bool ggml_cann_compute_forward(ggml_backend_cann_context & ctx, struct gg
             break;
         case GGML_OP_FLASH_ATTN_EXT:
             ggml_cann_flash_attn_ext(ctx, dst);
+            break;
+        case GGML_OP_SSM_CONV:
+            ggml_cann_ssm_conv(ctx, dst);
             break;
         default:
             return false;
@@ -2475,6 +2478,8 @@ static bool ggml_backend_cann_supports_op(ggml_backend_dev_t dev, const ggml_ten
                 }
                 return true;
             }
+        case GGML_OP_SSM_CONV:
+            return true;
         default:
             return false;
     }

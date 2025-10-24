@@ -3524,3 +3524,11 @@ void ggml_cann_flash_attn_ext(ggml_backend_cann_context & ctx, ggml_tensor * dst
         GGML_ABORT("Function is not implemented.");
     }
 }
+
+extern void ggml_cann_ssm_conv_impl(uint32_t coreDim, void * stream);
+
+void ggml_cann_ssm_conv(ggml_backend_cann_context & ctx, ggml_tensor * dst) {
+    (void) ctx;
+    (void) dst;
+    ggml_cann_ssm_conv_impl(8, nullptr);
+}

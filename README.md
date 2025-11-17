@@ -1,6 +1,6 @@
 ![google docs](https://docs.google.com/document/d/1S3za2oAk4aRfYCltRR8aHzQSLzSL2iJolJ4gMbg5d4M/edit?usp=sharing)
 
-<div class="tenor-gif-embed" data-postid="12805916815008299407" data-share-method="host" data-aspect-ratio="1" data-width="100%"><a href="https://tenor.com/view/oia-uia-oia-cat-uia-cat-catcultclassics-gif-12805916815008299407">Oia Uia Sticker</a>from <a href="https://tenor.com/search/oia-stickers">Oia Stickers</a></div> <script type="text/javascript" async src="https://tenor.com/embed.js"></script>
+![oia-uia](https://github.com/user-attachments/assets/9e5c225d-c37c-4bee-a22b-aa1ab24acb0c)
 
 # llama.cpp
 

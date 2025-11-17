@@ -3525,10 +3525,56 @@ void ggml_cann_flash_attn_ext(ggml_backend_cann_context & ctx, ggml_tensor * dst
     }
 }
 
-extern void ggml_cann_ssm_conv_impl(uint32_t coreDim, void * stream);
-
 void ggml_cann_ssm_conv(ggml_backend_cann_context & ctx, ggml_tensor * dst) {
-    (void) ctx;
-    (void) dst;
-    ggml_cann_ssm_conv_impl(8, nullptr);
+    ggml_tensor * src0 = dst->src[0]; // conv_x
+    ggml_tensor * src1 = dst->src[1]; // conv1d.weight
+
+    // allocate host buffers
+    size_t size_src0 = ggml_nbytes(src0);
+    size_t size_src1 = ggml_nbytes(src1);
+    size_t size_dst  = ggml_nbytes(dst);
+
+    float *h_src0 = (float *) malloc(size_src0);
+    float *h_src1 = (float *) malloc(size_src1);
+    float *h_dst  = (float *) malloc(size_dst);
+
+    // copy from device to host
+    aclrtMemcpy(h_src0, size_src0, src0->data, size_src0, ACL_MEMCPY_DEVICE_TO_HOST);
+    aclrtMemcpy(h_src1, size_src1, src1->data, size_src1, ACL_MEMCPY_DEVICE_TO_HOST);
+
+    // get shapes
+    const int nc  = src1->ne[0];        // d_conv
+    const int ncs = src0->ne[0];        // d_conv - 1 + n_t
+    const int nr  = src0->ne[1];        // d_inner
+    const int n_t = dst->ne[1];         // tokens
+    const int n_s = dst->ne[2];         // sequences
+
+    // compute SSM conv on host
+    for (int i3 = 0; i3 < n_s; ++i3) {
+        for (int i2 = 0; i2 < n_t; ++i2) {
+
+            const float *s = h_src0 + (i3 * ncs * nr) + (i2);
+            const float *c = h_src1;
+
+            float *x = h_dst + (i3 * n_t * nr) + (i2 * nr);
+
+            for (int i1 = 0; i1 < nr; ++i1) {
+                float sumf = 0.f;
+                for (int i0 = 0; i0 < nc; ++i0) {
+                    sumf += s[i0 + i1*ncs] * c[i0 + i1*nc];
+                }
+                x[i1] = sumf;
+            }
+        }
+    }
+
+    // copy to device
+    aclrtMemcpy(dst->data, size_dst, h_dst, size_dst, ACL_MEMCPY_HOST_TO_DEVICE);
+
+    // cleanup
+    free(h_src0);
+    free(h_src1);
+    free(h_dst);
 }
+
+

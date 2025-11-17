@@ -650,6 +650,8 @@ void bcast_shape(ggml_tensor * src0,
  */
 void ggml_cann_conv_transpose_1d(ggml_backend_cann_context & ctx, ggml_tensor * dst);
 
+void ggml_cann_conv_ssm_conv(ggml_backend_cann_context & ctx, ggml_tensor * dst);
+
 /**
  * @brief   Applies the ELU (Exponential Linear Unit) activation to a ggml tensor
  * using the CANN backend.

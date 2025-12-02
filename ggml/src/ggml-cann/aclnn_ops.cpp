@@ -3527,7 +3527,7 @@ void ggml_cann_flash_attn_ext(ggml_backend_cann_context & ctx, ggml_tensor * dst
 
 
 
-void ggml_cann_ssm_conv(ggml_backend_cann_context & ctx, ggml_tensor * dst) {
+void ggml_cann_ssm_conv(ggml_backend_cann_context & ctx, ggml_tensor * dst) { // with 1D depthwise convolution
     ggml_tensor * src0 = dst->src[0];  // conv_x
     ggml_tensor * src1 = dst->src[1];  // conv1d.weight
 
@@ -3563,7 +3563,7 @@ void ggml_cann_ssm_conv(ggml_backend_cann_context & ctx, ggml_tensor * dst) {
         src0->nb,
         3,
         ACL_FORMAT_NCL
-    );
+    ); // {n_seq, d_inner, d_conv -1 + n_t}
 
     // 2) Weights: depthwise conv kernel, view src1 as {K, 1, C}
     //
@@ -3592,12 +3592,13 @@ void ggml_cann_ssm_conv(ggml_backend_cann_context & ctx, ggml_tensor * dst) {
         src1->data,
         ggml_cann_type_mapping(src1->type),
         ggml_type_size(src1->type),
-        w_ne,
+        w_ne,// {nc, 1, nr, 1}
         w_nb,
         3,
-        ACL_FORMAT_NCL
+        ACL_FORMAT_NCL // {nr=C, 1, nc=K} = {d_inner, 1, d_conv}
     );
 
+    
     // 3) Output: dst is { d_inner, n_t, n_s } (CLN)
     //
     // We need an NCL view of the same buffer:
@@ -3632,10 +3633,17 @@ void ggml_cann_ssm_conv(ggml_backend_cann_context & ctx, ggml_tensor * dst) {
         ggml_cann_type_mapping(dst->type),
         ggml_type_size(dst->type),
         y_ne,
-        y_nb,
-        3,
+        y_nb, // {n_t,d_inner,n_seq, 1}
+        3, // {n_t,d_inner,n_seq}
         ACL_FORMAT_NCL
-    );
+    ); // acl_y = {n_seq, d_inner,n_t}
+
+    /** Now we have
+    * acl_x = {n_seq, d_inner, d_conv -1 + n_t}
+      acl_w = {d_inner, 1, d_conv}
+      acl_y = {n_seq, d_inner,n_t}
+      1D conv output size: L_out​ =L_in​ − W + 1​
+    */
 
     // --- Conv1d parameters: depthwise, stride 1, no padding ("valid") ---
     int64_t strideVal[1]   = { 1 };
@@ -3647,7 +3655,7 @@ void ggml_cann_ssm_conv(ggml_backend_cann_context & ctx, ggml_tensor * dst) {
     aclIntArray * dilation = aclCreateIntArray(dilationVal, 1);
 
     const bool    transposed   = false;
-    const int64_t groups       = nr;        // depthwise: one group per inner dim
+    const int64_t groups       = nr;        // depthwise: one group per inner dim (d_inner group in total)
     int8_t        cubeMathType = 0;
 
 #ifdef ASCEND_310P

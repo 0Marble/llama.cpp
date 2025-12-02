@@ -1,7 +1,3 @@
-# [google docs](https://docs.google.com/document/d/1S3za2oAk4aRfYCltRR8aHzQSLzSL2iJolJ4gMbg5d4M/edit?usp=sharing)
-
-![oia-uia](https://github.com/user-attachments/assets/9e5c225d-c37c-4bee-a22b-aa1ab24acb0c)
-
 # llama.cpp
 
 ![llama](https://user-images.githubusercontent.com/1991296/230134379-7181e485-c521-4d23-a0d6-f7b3b61ba524.png)

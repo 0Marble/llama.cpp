@@ -3515,7 +3515,7 @@ void ggml_cann_ssm_conv(ggml_backend_cann_context & ctx, ggml_tensor * dst) {
     // src0->ne = { ncs, nr, n_s, 1 }  // {L_in, C, N}
     // Passing ACL_FORMAT_NCL here means:
     //   reversed dims -> [N, C, L_in] = [n_s, nr, ncs]
-    aclTensor * acl_x = ggml_cann_create_tensor(src0, src0->ne, src0->nb, 3, ACL_FORMAT_NCL);
+    acl_tensor_ptr acl_x = ggml_cann_create_tensor(src0, src0->ne, src0->nb, 3, ACL_FORMAT_NCL);
 
     // 2) Weights: depthwise conv kernel, view src1 as {K, 1, C}
     //
@@ -3540,7 +3540,7 @@ void ggml_cann_ssm_conv(ggml_backend_cann_context & ctx, ggml_tensor * dst) {
     w_nb[2] = src1->nb[1];  // same stride for each (fake) "channel"
     w_nb[3] = src1->nb[3];
 
-    aclTensor * acl_w = ggml_cann_create_tensor(
+    acl_tensor_ptr acl_w = ggml_cann_create_tensor(
         src1->data, ggml_cann_type_mapping(src1->type), ggml_type_size(src1->type), w_ne, w_nb, 3, ACL_FORMAT_NCL);
 
     // 3) Output: dst is { d_inner, n_t, n_s } (CLN)
@@ -3572,7 +3572,7 @@ void ggml_cann_ssm_conv(ggml_backend_cann_context & ctx, ggml_tensor * dst) {
     y_nb[2] = dst->ne[0] * dst->ne[1] * sizeof(float);  // nr * n_t * sizeof(float)
     y_nb[3] = dst->nb[3];
 
-    aclTensor * acl_y = ggml_cann_create_tensor(
+    acl_tensor_ptr acl_y = ggml_cann_create_tensor(
         dst->data, ggml_cann_type_mapping(dst->type), ggml_type_size(dst->type), y_ne, y_nb, 3, ACL_FORMAT_NCL);
 
     // --- Conv1d parameters: depthwise, stride 1, no padding ("valid") ---
@@ -3580,9 +3580,9 @@ void ggml_cann_ssm_conv(ggml_backend_cann_context & ctx, ggml_tensor * dst) {
     int64_t paddingVal[1]  = { 0 };
     int64_t dilationVal[1] = { 1 };
 
-    aclIntArray * stride   = aclCreateIntArray(strideVal, 1);
-    aclIntArray * padding  = aclCreateIntArray(paddingVal, 1);
-    aclIntArray * dilation = aclCreateIntArray(dilationVal, 1);
+    acl_int_array_ptr stride   = ggml_cann_create_int_array(strideVal, 1);
+    acl_int_array_ptr padding  = ggml_cann_create_int_array(paddingVal, 1);
+    acl_int_array_ptr dilation = ggml_cann_create_int_array(dilationVal, 1);
 
     const bool    transposed   = false;
     const int64_t groups       = nr;  // depthwise: one group per inner dim
@@ -3594,24 +3594,16 @@ void ggml_cann_ssm_conv(ggml_backend_cann_context & ctx, ggml_tensor * dst) {
 
     GGML_CANN_CALL_ACLNN_OP(ctx,
                             Convolution,
-                            acl_x,    // input:  N, C, L_in = ncs
-                            acl_w,    // weight: [C, 1, K] with groups=nr
-                            nullptr,  // bias
-                            stride,
-                            padding,
-                            dilation,
+                            acl_x.get(),    // input:  N, C, L_in = ncs
+                            acl_w.get(),    // weight: [C, 1, K] with groups=nr
+                            nullptr,        // bias
+                            stride.get(),
+                            padding.get(),
+                            dilation.get(),
                             transposed,
-                            padding,  // output padding (unused for non-transposed)
+                            padding.get(),   // output padding (unused for non-transposed)
                             groups,
-                            acl_y,
+                            acl_y.get(),
                             cubeMathType);
-
-    // --- cleanup ---
-    ACL_CHECK(aclDestroyTensor(acl_x));
-    ACL_CHECK(aclDestroyTensor(acl_w));
-    ACL_CHECK(aclDestroyTensor(acl_y));
-    ACL_CHECK(aclDestroyIntArray(stride));
-    ACL_CHECK(aclDestroyIntArray(padding));
-    ACL_CHECK(aclDestroyIntArray(dilation));
 }
 
